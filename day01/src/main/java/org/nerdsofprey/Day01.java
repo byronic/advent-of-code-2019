@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Day01 {
@@ -30,12 +31,19 @@ public class Day01 {
     return (mass / 3) - 2;
   }
 
-  private int sumFuel(Set<Integer> masses) {
-    return masses.parallelStream().map(mass -> fuelRequired(mass)).mapToInt(Integer::intValue).sum();
+  private int sumFuel(Set<Integer> masses, Function<Integer, Integer> accumulator) {
+    return masses.parallelStream().map(mass -> accumulator.apply(mass)).mapToInt(Integer::intValue).sum();
   }
 
-  private int execute(Path path) throws IOException {
-    return sumFuel(Files.readAllLines(path).parallelStream().map(line -> Integer.parseInt(line)).collect(Collectors.toSet()));
+  private int execute(Path path, Function<Integer, Integer> accumulator) throws IOException {
+    return sumFuel(Files.readAllLines(path).parallelStream().map(line -> Integer.parseInt(line)).collect(Collectors.toSet()), accumulator);
+  }
+
+  private String validateConfig(Map<String, String> env) {
+    if (!env.containsKey(AOC2019_DAY01_PART1)) {
+      throw new RuntimeException(String.format("Missing required environment variable %s", AOC2019_DAY01_PART1));
+    }
+    return env.get(AOC2019_DAY01_PART1);
   }
 
   /**
@@ -45,13 +53,23 @@ public class Day01 {
    * @throws IOException If the environment variable doesn't contain a valid / readable file.
    */
   public int part1(Map<String, String> env) throws IOException {
-    if (!env.containsKey(AOC2019_DAY01_PART1)) {
-      throw new RuntimeException(String.format("Missing required environment variable %s", AOC2019_DAY01_PART1));
+    return execute(Paths.get(validateConfig(env)), this::fuelRequired);
+  }
+
+  private int recursiveFuel(int mass) {
+    int result = fuelRequired(mass);
+    if (result < 1) {
+      return 0;
     }
-    return execute(Paths.get(env.get(AOC2019_DAY01_PART1)));
+    return result + recursiveFuel(result);
+  }
+
+  public int part2(Map<String, String> env) throws IOException {
+    return execute(Paths.get(validateConfig(env)), this::recursiveFuel);
   }
 
   public static void main(String[] args) throws IOException {
     System.out.println(new Day01().part1(System.getenv()));
+    System.out.println(new Day01().part2(System.getenv()));
   }
 }
