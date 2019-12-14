@@ -49,8 +49,7 @@ public class TestDay01 {
   @Test
   public void testGivenEquations() throws IOException {
     Map<String, String> env = new HashMap<>();
-    env.put(Day01.AOC2019_DAY01_PART1, path.toString());
-    // 34,241‬ is the correct answer
+    env.put(Day01.AOC2019_DAY01, path.toString());
     assertEquals("Example math from the site should add to 34241", 34241, new Day01().part1(env));
   }
 

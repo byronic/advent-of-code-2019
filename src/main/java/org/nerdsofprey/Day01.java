@@ -15,35 +15,40 @@
  */
 package org.nerdsofprey;
 
+import org.nerdsofprey.util.AOCIntegerResults;
+
+import javax.inject.Named;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class Day01 {
-  public final static String AOC2019_DAY01_PART1 = "AOC2019_DAY01_PART1";
+@Named("Day01")
+public class Day01 implements AOCIntegerResults {
+  public final static String AOC2019_DAY01 = "AOC2019_DAY01";
 
   private int fuelRequired(int mass) {
     return (mass / 3) - 2;
   }
 
   private int sumFuel(Set<Integer> masses, Function<Integer, Integer> accumulator) {
-    return masses.parallelStream().map(mass -> accumulator.apply(mass)).mapToInt(Integer::intValue).sum();
+    return masses.parallelStream().map(accumulator::apply).mapToInt(Integer::intValue).sum();
   }
 
   private int execute(Path path, Function<Integer, Integer> accumulator) throws IOException {
-    return sumFuel(Files.readAllLines(path).parallelStream().map(line -> Integer.parseInt(line)).collect(Collectors.toSet()), accumulator);
+    return sumFuel(Files.readAllLines(path).parallelStream().map(Integer::parseInt).collect(Collectors.toSet()), accumulator);
   }
 
   private String validateConfig(Map<String, String> env) {
-    if (!env.containsKey(AOC2019_DAY01_PART1)) {
-      throw new RuntimeException(String.format("Missing required environment variable %s", AOC2019_DAY01_PART1));
+    if (!env.containsKey(AOC2019_DAY01)) {
+      throw new RuntimeException(String.format("Missing required environment variable %s", AOC2019_DAY01));
     }
-    return env.get(AOC2019_DAY01_PART1);
+    return env.get(AOC2019_DAY01);
   }
 
   /**
@@ -68,8 +73,17 @@ public class Day01 {
     return execute(Paths.get(validateConfig(env)), this::recursiveFuel);
   }
 
-  public static void main(String[] args) throws IOException {
-    System.out.println(new Day01().part1(System.getenv()));
-    System.out.println(new Day01().part2(System.getenv()));
+
+  @Override
+  public Map<String, Integer> get() {
+    Map<String, Integer> results = new HashMap<>();
+    try {
+      results.put("Day 1, part 1: ", part1(System.getenv()));
+      results.put("Day 1, part 2: ", part2(System.getenv()));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    return results;
   }
 }
