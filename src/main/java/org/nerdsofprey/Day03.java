@@ -25,7 +25,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Named("Day02")
+@Named("Day03")
 public class Day03 implements AOCIntegerResults {
   public final static String AOC2019_DAY03 = "AOC2019_DAY03";
 
