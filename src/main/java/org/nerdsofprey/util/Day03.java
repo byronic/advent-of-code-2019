@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Named("Day02")
 public class Day03 implements AOCIntegerResults {
@@ -29,11 +30,17 @@ public class Day03 implements AOCIntegerResults {
   private final Map<Integer, List<Integer>> path1 = new HashMap<>();
   private final Map<Integer, List<Integer>> path2 = new HashMap<>();
 
+  private final Map<Integer, List<Pair<Integer, Integer>>> pathSteps1 = new HashMap<>();
+  private final Map<Integer, List<Pair<Integer, Integer>>> pathSteps2 = new HashMap<>();
+
+  // I know this is silly
   private class Pair<T, V> {
     private final T t;
     private final V v;
 
     public Pair(T t, V v) {
+      Objects.requireNonNull(t);
+      Objects.requireNonNull(v);
       this.t = t;
       this.v = v;
     }
@@ -46,7 +53,35 @@ public class Day03 implements AOCIntegerResults {
     }
   }
 
-  // I know this is silly
+  // yes, yes, silly
+  private class Triplet<A, B, C> {
+    private final A a;
+    private final B b;
+    private final C c;
+
+    public Triplet(A a, B b, C c) {
+      Objects.requireNonNull(a);
+      Objects.requireNonNull(b);
+      Objects.requireNonNull(c);
+      this.a = a;
+      this.b = b;
+      this.c = c;
+    }
+
+    public A x() {
+      return a;
+    }
+
+    public B y() {
+      return b;
+    }
+
+    public C z() {
+      return c;
+    }
+  }
+
+  // I know this is also silly
   private int calculateManhattanDistance(int x, int y) {
     return x + y;
   }
@@ -133,12 +168,85 @@ public class Day03 implements AOCIntegerResults {
     return findNearestCollision();
   }
 
+  private Optional<Integer> containsKey(List<Pair<Integer, Integer>> l, int y) {
+    if(l.parallelStream().anyMatch(k -> k.getKey().equals(y)))
+      return Optional.of(l.stream().filter(t -> t.getKey().equals(y)).collect(Collectors.toList()).get(0).getValue());
+    return Optional.empty();
+  }
+
+  // part two needed different calculations all the way up :/
+  private Triplet<Integer, Integer, Integer> drawLineWithSteps(Map<Integer, List<Pair<Integer, Integer>>> p, char direction, int x, int y, int remaining, int steps) {
+    if (remaining == 0) {
+      return new Triplet<>(x, y, steps);
+    }
+    if (!p.containsKey(x)) {
+      p.put(x, new ArrayList<>());
+    }
+    if (!containsKey(p.get(x), y).isPresent()) {
+      p.get(x).add(new Pair<>(y, steps));
+    }
+    switch (direction) {
+      case 'U': return drawLineWithSteps(p, direction, x, y + 1, remaining - 1, steps + 1);
+      case 'D': return drawLineWithSteps(p, direction, x, y - 1, remaining - 1, steps + 1);
+      case 'R': return drawLineWithSteps(p, direction, x + 1, y, remaining - 1, steps + 1);
+      case 'L': return drawLineWithSteps(p, direction, x - 1, y, remaining - 1, steps + 1);
+    }
+    throw new RuntimeException("I should never make it this far in drawLine!");
+  }
+
+  private void traverseWithSteps(Map<Integer, List<Pair<Integer, Integer>>> p, String line) {
+    String[] directions = line.split(",");
+    Triplet<Integer, Integer, Integer> xySteps = new Triplet<>(0, 0, 0);
+    for (String d : directions) {
+      xySteps = drawLineWithSteps(p, d.charAt(0), xySteps.x(), xySteps.y(), Integer.parseInt(d.substring(1)), xySteps.z());
+    }
+  }
+
+  private void loadMapsWithSteps(Path p) throws IOException {
+    List<String> lines = Files.readAllLines(p);
+    traverseWithSteps(pathSteps1, lines.get(0));
+    traverseWithSteps(pathSteps2, lines.get(1));
+  }
+
+  // Map<Integer, List<Pair<Integer, Integer>>> (x, List((y, steps), (y, steps)[...]))
+  private int findNearestCollisionLowSteps() {
+    List<Triplet<Integer, Integer, Integer>> collisionList = pathSteps1.keySet().parallelStream().flatMap(key -> {
+      List<Triplet<Integer, Integer, Integer>> collisions = new ArrayList<>();
+      if (pathSteps2.containsKey(key)) {
+        // collisions contain x, y, steps
+        collisions.addAll(pathSteps1.get(key).parallelStream().map(pair -> {
+          int steps = containsKey(pathSteps2.get(key), pair.getKey()).orElse(-1);
+          if (steps >= 0) {
+            if (key == 0 && pair.getKey() == 0) {
+              return new Triplet<>(-1, -1, -1);
+            }
+            return new Triplet<>(key, pair.getKey(), pair.getValue() + steps);
+          } else {
+            return new Triplet<>(-1, -1, -1);
+          }
+        }).filter(t -> t.z() >= 0).collect(Collectors.toList()));
+      }
+      return collisions.stream();
+    }).collect(Collectors.toList());
+    collisionList.forEach(t -> {
+      System.out.println(String.format("Collision at (%d, %d) : %d steps", t.x(), t.y(), t.z()));
+    });
+    return collisionList.stream().min(Comparator.comparing(Triplet::z)).get().z();
+  }
+
+  private int part2(Map<String, String> env) throws IOException {
+    loadMapsWithSteps(Paths.get(env.get(AOC2019_DAY03)));
+    return findNearestCollisionLowSteps();
+  }
+
+
+
   @Override
   public Map<String, Integer> get() {
     Map<String, Integer> results = new HashMap<>();
     try {
       results.put("Day 3, part 1: ", part1(System.getenv()));
-      // results.put("Day 3, part 2: ", part2(System.getenv()));
+      results.put("Day 3, part 2: ", part2(System.getenv()));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
