@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.nerdsofprey.util;
+package org.nerdsofprey;
+
+import org.nerdsofprey.util.AOCIntegerResults;
 
 import javax.inject.Named;
 import java.io.IOException;
